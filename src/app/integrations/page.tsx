@@ -2,27 +2,20 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-interface Repo {
-  name: string;
-  html_url: string;
-}
-
 const Integrations: React.FC = () => {
   const router = useRouter();
   const [isConnected, setIsConnected] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
-  const [repositories, setRepositories] = useState<Repo[]>([]);
+  const [repositories, setRepositories] = useState<string[]>([]);
 
   useEffect(() => {
-    // Fetch the integration status on component mount
+    // Fetch the integration status and repositories on component mount
     const fetchIntegrationStatus = async () => {
-      const response = await fetch('/api/status'); // This will check if the user is connected
+      const response = await fetch('/api/status');
       const data = await response.json();
+      setIsConnected(data.connected);
 
       if (data.connected) {
-        setIsConnected(true);
-        setUsername(data.username);
-        setRepositories(data.repositories);
+        setRepositories(data.repositories.map((repo: any) => repo.name));
       }
     };
 
@@ -30,8 +23,7 @@ const Integrations: React.FC = () => {
   }, []);
 
   const handleConnect = async () => {
-    // Redirect to the GitHub OAuth authorization page
-    router.push('/api/integrations');
+    router.push('/api/integrations'); // Redirect to GitHub OAuth
   };
 
   const handleDisconnect = async () => {
@@ -40,9 +32,8 @@ const Integrations: React.FC = () => {
     });
 
     if (response.ok) {
-      setIsConnected(false); // Update UI after successful disconnection
-      setUsername(null);
-      setRepositories([]);
+      setIsConnected(false); // Update UI after disconnection
+      setRepositories([]);   // Clear repository list after disconnection
     } else {
       const errorData = await response.json();
       alert(errorData.error || 'Failed to disconnect the integration.');
@@ -52,8 +43,9 @@ const Integrations: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-semibold mb-8">Available Integrations</h1>
-      <div className="bg-gray-100 p-6 rounded-lg shadow-md">
-        <h2 className="text-2xl font-medium mb-4">GitHub</h2>
+
+      <div className="integration-card bg-gray-100 p-6 rounded-lg shadow-md">
+        <h2 className="text-2xl font-semibold mb-4">GitHub</h2>
 
         {!isConnected ? (
           <button
@@ -64,38 +56,28 @@ const Integrations: React.FC = () => {
           </button>
         ) : (
           <div>
+            <h3 className="text-xl font-medium mb-4">Connected Repositories</h3>
+            <ul className="list-disc pl-5">
+              {repositories.map((repo) => (
+                <li key={repo} className="mb-2">
+                  {/* When clicked, navigate to the action page for the selected repository */}
+                  <button
+                    onClick={() => router.push(`/integrations/${repo}`)}
+                    className="text-blue-500 hover:underline"
+                  >
+                    {repo}
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            {/* Disconnect button */}
             <button
-              className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 mb-4"
+              className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 mt-4"
               onClick={handleDisconnect}
             >
               Disconnect GitHub
             </button>
-
-            {/* Display the username and repositories */}
-            {username && (
-              <div className="mb-4">
-                <h3 className="text-xl font-semibold">Connected GitHub User: {username}</h3>
-              </div>
-            )}
-            {repositories.length > 0 && (
-              <div>
-                <h3 className="text-lg font-medium mb-2">Repositories:</h3>
-                <ul className="list-disc list-inside">
-                  {repositories.map((repo) => (
-                    <li key={repo.name}>
-                      <a
-                        href={repo.html_url}
-                        className="text-blue-500 hover:underline"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {repo.name}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
         )}
       </div>
