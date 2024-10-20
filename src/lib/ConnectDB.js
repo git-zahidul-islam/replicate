@@ -12,7 +12,7 @@ export const ConnectDB =async () => {
               deprecationErrors: true,
             }
           });
-        db = client.db('carDoctorPro')
+        db = client.db('replicate')
         return db;
     } catch (error) {
         console.log(error);

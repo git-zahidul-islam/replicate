@@ -46,9 +46,16 @@ export async function GET(request) {
     },
   });
 
+  // Check if the repository fetch was successful
+  if (!reposResponse.ok) {
+    const reposError = await reposResponse.json();
+    return NextResponse.json({ error: reposError.message }, { status: reposResponse.status });
+  }
+
   const reposData = await reposResponse.json();
 
-  const db = await ConnectDB()
+  // Connect to MongoDB and insert the integration data
+  const db = await ConnectDB();
   const githubDetailsCollection = db.collection('githubDetails');
 
   const integrationData = {
@@ -57,14 +64,13 @@ export async function GET(request) {
     createdAt: new Date(),
   };
 
-//   insert data
-try {
+  try {
     await githubDetailsCollection.insertOne(integrationData);
   } catch (error) {
     console.error('Error inserting data into MongoDB:', error);
     return NextResponse.json({ error: 'Failed to store integration data' }, { status: 500 });
   }
 
-  return NextResponse.json({ access_token: accessToken, repositories: reposData }, { status: 200 });
+  // Redirect back to the integrations page
+  return NextResponse.redirect('http://localhost:3000/integrations');
 }
-
